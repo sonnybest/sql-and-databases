@@ -1,19 +1,20 @@
--- Table: cities
 
--- +-------------+---------+
--- | Column Name | Type    | 
--- +-------------+---------+
--- | state       | varchar |
--- | city        | varchar |
--- +-------------+---------+
--- (state, city) is the combination of columns with unique values for this table.
--- Each row of this table contains the state name and the city name within that state.
--- Write a solution to find all the cities in each state and analyze them based on the following requirements:
+-- 3338. Second Highest Salary II
 
--- Combine all cities into a comma-separated string for each state.
--- Only include states that have at least 3 cities.
--- Only include states where at least one city starts with the same letter as the state name.
--- Return the result table ordered by the count of matching-letter cities in descending order and then by state name in ascending order.
+-- Table: employees
+
+-- +------------------+---------+
+-- | Column Name      | Type    |
+-- +------------------+---------+
+-- | emp_id           | int     |
+-- | salary           | int     |
+-- | dept             | varchar |
+-- +------------------+---------+
+-- emp_id is the unique key for this table.
+-- Each row of this table contains information about an employee including their ID, salary, and department.
+-- Write a solution to find the employees who earn the second-highest salary in each department. If multiple employees have the second-highest salary, include all employees with that salary.
+
+-- Return the result table ordered by emp_id in ascending order.
 
 -- The result format is in the following example.
 
@@ -23,65 +24,63 @@
 
 -- Input:
 
--- cities table:
+-- employees table:
 
--- +--------------+---------------+
--- | state        | city          |
--- +--------------+---------------+
--- | New York     | New York City |
--- | New York     | Newark        |
--- | New York     | Buffalo       |
--- | New York     | Rochester     |
--- | California   | San Francisco |
--- | California   | Sacramento    |
--- | California   | San Diego     |
--- | California   | Los Angeles   |
--- | Texas        | Tyler         |
--- | Texas        | Temple        |
--- | Texas        | Taylor        |
--- | Texas        | Dallas        |
--- | Pennsylvania | Philadelphia  |
--- | Pennsylvania | Pittsburgh    |
--- | Pennsylvania | Pottstown     |
--- +--------------+---------------+
+-- +--------+--------+-----------+
+-- | emp_id | salary | dept      |
+-- +--------+--------+-----------+
+-- | 1      | 70000  | Sales     |
+-- | 2      | 80000  | Sales     |
+-- | 3      | 80000  | Sales     |
+-- | 4      | 90000  | Sales     |
+-- | 5      | 55000  | IT        |
+-- | 6      | 65000  | IT        |
+-- | 7      | 65000  | IT        |
+-- | 8      | 50000  | Marketing |
+-- | 9      | 55000  | Marketing |
+-- | 10     | 55000  | HR        |
+-- +--------+--------+-----------+
 -- Output:
 
--- +-------------+-------------------------------------------+-----------------------+
--- | state       | cities                                    | matching_letter_count |
--- +-------------+-------------------------------------------+-----------------------+
--- | Pennsylvania| Philadelphia, Pittsburgh, Pottstown       | 3                     |
--- | Texas       | Dallas, Taylor, Temple, Tyler             | 3                     |
--- | New York    | Buffalo, Newark, New York City, Rochester | 2                     |
--- +-------------+-------------------------------------------+-----------------------+
+-- +--------+-----------+
+-- | emp_id | dept      |
+-- +--------+-----------+
+-- | 2      | Sales     |
+-- | 3      | Sales     |
+-- | 5      | IT        |
+-- | 8      | Marketing |
+-- +--------+-----------+
 -- Explanation:
 
--- Pennsylvania:
--- Has 3 cities (meets minimum requirement)
--- All 3 cities start with 'P' (same as state)
--- matching_letter_count = 3
--- Texas:
--- Has 4 cities (meets minimum requirement)
--- 3 cities (Taylor, Temple, Tyler) start with 'T' (same as state)
--- matching_letter_count = 3
--- New York:
--- Has 4 cities (meets minimum requirement)
--- 2 cities (Newark, New York City) start with 'N' (same as state)
--- matching_letter_count = 2
--- California is not included in the output because:
--- Although it has 4 cities (meets minimum requirement)
--- No cities start with 'C' (doesn't meet the matching letter requirement)
--- Note:
+-- Sales Department:
+-- Highest salary is 90000 (emp_id: 4)
+-- Second-highest salary is 80000 (emp_id: 2, 3)
+-- Both employees with salary 80000 are included
+-- IT Department:
+-- Highest salary is 65000 (emp_id: 6, 7)
+-- Second-highest salary is 55000 (emp_id: 5)
+-- Only emp_id 5 is included as they have the second-highest salary
+-- Marketing Department:
+-- Highest salary is 55000 (emp_id: 9)
+-- Second-highest salary is 50000 (emp_id: 8)
+-- Employee 8 is included
+-- HR Department:
+-- Only has one employee
+-- Not included in the result as it has fewer than 2 employees
 
--- Results are ordered by matching_letter_count in descending order
--- When matching_letter_count is the same (Texas and New York both have 2), they are ordered by state name alphabetically
--- Cities in each row are ordered alphabetically
+-- # Write your MySQL query statement below
 
-SELECT 
-    state,
-    GROUP_CONCAT(city ORDER BY city SEPARATOR ', ') cities,
-    SUM(LEFT(state, 1) = LEFT(city, 1)) matching_letter_count
-FROM cities
-GROUP BY state
-HAVING COUNT(*) > 2 
-   AND SUM(LEFT(state, 1) = LEFT(city, 1)) > 0
-ORDER BY matching_letter_count DESC, state;
+WITH sub AS (
+    SELECT *,
+           DENSE_RANK() OVER(
+               PARTITION BY dept 
+               ORDER BY salary DESC
+           ) AS rnk
+    FROM employees
+)
+
+SELECT emp_id,
+       dept
+FROM sub
+WHERE rnk = 2
+ORDER BY emp_id;
